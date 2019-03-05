@@ -1,0 +1,10 @@
+{
+	"module": "nucleo_l476rg",
+	"targets": ["nucleo_l476rg"],
+    "src": ["src/zjs_pinmux_l476rg.c"],
+    "zephyr_conf":{
+        "nucleo_l476rg":[
+            "CONFIG_SPI_1=y"
+        ]
+    }
+}

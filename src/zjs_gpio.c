@@ -1,7 +1,7 @@
 // Copyright (c) 2016-2018, Intel Corporation.
 
 // enable to use function tracing for debug purposes
-#if 0
+#if 1
 #define USE_FTRACE
 static char FTRACE_PREFIX[] = "gpio";
 #endif

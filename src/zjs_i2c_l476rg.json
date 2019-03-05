@@ -1,0 +1,11 @@
+{
+    "module": "i2c_l476rg",
+    "targets": ["nucleo_l476rg"],
+    "zephyr_conf": {
+        "all": [
+            "CONFIG_I2C=y"
+        ]
+    },
+    "zjs_config": ["-DBUILD_MODULE_I2C"],
+    "src": ["src/zjs_i2c_handler.c"]
+}

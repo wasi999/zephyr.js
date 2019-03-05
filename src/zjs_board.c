@@ -53,6 +53,8 @@ typedef struct {
 #elif CONFIG_BOARD_FRDM_K64F
 // see also docs/frdm_k64f.md
 #include "boards/frdm_k64f_board.h"
+#elif CONFIG_BOARD_NUCLEO_L476RG
+#include "boards/nucleo_l476rg_board.h"
 #else
 //
 // Basic support for all other boards
@@ -378,6 +380,8 @@ int wrap_split_pin_name(const char *name, char *prefix, int *number)
 #define BOARD_NAME "linux (partially simulating arduino_101)"
 #elif CONFIG_BOARD_FRDM_K64F
 #define BOARD_NAME "frdm_k64f"
+#elif CONFIG_BOARD_NUCLEO_L476RG
+#define BOARD_NAME "nucleo_l476rg"
 #elif CONFIG_BOARD_NRF52_PCA10040
 #define BOARD_NAME "nrf52_pca10040"
 #elif CONFIG_BOARD_ARDUINO_DUE
