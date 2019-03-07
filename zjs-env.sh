@@ -18,4 +18,4 @@ echo "${PATH}" | grep -q "${scripts_path}"
 [ $? != 0 ] && export PATH=${scripts_path}:${PATH}
 unset scripts_path
 
-export ZEPHYR_FLASH_OVER_DFU=y
+#export ZEPHYR_FLASH_OVER_DFU=y

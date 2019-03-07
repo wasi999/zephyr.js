@@ -3,7 +3,7 @@
 set_ifndef(JERRY_BASE ./deps/jerryscript)
 set_ifndef(IOTC_BASE ./deps/iotivity-constrained)
 
-set_ifndef(BOARD arduino_101)
+set_ifndef(BOARD nucleo_l476rg)
 set(ENV{BOARD} ${BOARD})
 
 set_ifndef(JERRY_HEAP 16)
@@ -12,7 +12,7 @@ set_ifndef(JERRY_PROFILE minimal)
 # build in src directory if not set
 set_ifndef(JERRY_OUTPUT ${JERRY_BASE})
 
-if("${BOARD}" STREQUAL "arduino_101")
+if("${BOARD}" STREQUAL "nucleo_l476rg")
   # ALL-IN-ONE build, slightly shrink build size, may not work on all platforms
   set(ALL_IN_ONE ON)
 else()

@@ -8,7 +8,7 @@ VERBOSITY ?= 1
 
 OS := $(shell uname)
 
-BOARD ?= arduino_101
+BOARD ?= nucleo_l476rg
 
 SCRIPT_SIZE ?= 8192
 RAM ?= 64
@@ -38,8 +38,8 @@ $(error ZJS_BASE not defined. You need to source zjs-env.sh)
 endif
 
 ifeq ($(DEBUGGER), on)
-ifneq (,$(filter $(MAKECMDGOALS), linux arduino_101))
-$(error Debugger only runs on linux and arduino_101)
+ifneq (,$(filter $(MAKECMDGOALS), linux nucleo_l476rg))
+$(error Debugger only runs on linux and nucleo_l476rg)
 endif
 # debugger requires unminimized JS which will require much a larger script size
 SCRIPT_SIZE = 16384
@@ -49,7 +49,7 @@ SNAPSHOT=off
 endif
 endif
 
-ifeq ($(BOARD), arduino_101)
+ifeq ($(BOARD), nucleo_l476rg)
 # RAM can't be less than the 55KB normally allocated for x86
 # NOTE: We could change this and allow it though, find a sane minimum
 ifeq ($(shell test $(RAM) -lt 55; echo $$?), 0)
@@ -82,7 +82,7 @@ ifeq ($(shell test $(IDE_GPIO_PIN) -gt 20; echo $$?), 0)
 $(error IDE_GPIO_PIN must be no higher than 20)
 endif
 endif
-endif  # BOARD = arduino_101
+endif  # BOARD = nucleo_l476rg
 
 ifeq ($(filter $(MAKECMDGOALS),linux), linux)
 $(error 'linux' make target is deprecated, use "make BOARD=linux")
@@ -156,7 +156,7 @@ ifneq (,$(filter $(MAKECMDGOALS),dynamic))
 FORCED := dynamic_load.json,$(FORCED)
 endif
 
-ifeq ($(BOARD), arduino_101)
+ifeq ($(BOARD), nucleo_l476rg)
 ARC = arc
 ARC_RAM = $$((79 - $(RAM)))
 ARC_ROM = $$((296 - $(ROM)))
@@ -168,13 +168,13 @@ else
 TARGETS=$(MAKECMDGOALS)
 endif
 
-# if actually building for A101 (not clean), report RAM/ROM allocation
+# if actually building for L476rg (not clean), report RAM/ROM allocation
 ifneq ($(filter all zephyr arc,$(TARGETS)),)
-$(info Building for Arduino 101...)
+$(info Building for Nucleo l476rg...)
 $(info $() $() RAM allocation: $(RAM)KB for X86, $(shell echo $(ARC_RAM))KB for ARC)
 $(info $() $() ROM allocation: $(ROM)KB for X86, $(shell echo $(ARC_ROM))KB for ARC)
 endif
-endif  # BOARD = arduino_101
+endif  # BOARD = nucleo_l476rg
 
 # Print callback statistics during runtime
 CB_STATS ?= off
@@ -198,8 +198,8 @@ check:
 quickcheck:
 	trlite -l 3
 
-A101BIN = $(OUT)/arduino_101/zephyr/zephyr.bin
-A101SSBIN = $(OUT)/arduino_101_sss/zephyr/zephyr.bin
+L476RGBIN = $(OUT)/nucleo_l476rg/zephyr/zephyr.bin
+L476RGBIN = $(OUT)/nucleo_l476rg/zephyr/zephyr.bin
 
 .PHONY: ram_report
 ram_report: zephyr
@@ -218,12 +218,12 @@ flash:
 zephyr: analyze generate $(ARC)
 	@cmake $(CMAKEFLAGS) -H. && \
 	make -C $(OUT)/$(BOARD) -j4
-ifeq ($(BOARD), arduino_101)
+ifeq ($(BOARD), nucleo_l476rg)
 	@echo
 	@echo -n Creating dfu images...
-	@dd if=$(A101BIN) of=$(A101BIN).dfu bs=1024 count=144 2> /dev/null
-	@dd if=$(A101BIN) of=$(A101SSBIN).dfu bs=1024 skip=144 2> /dev/null
-	@dd if=$(A101SSBIN) of=$(A101SSBIN).dfu bs=1024 seek=$$(($(ROM) - 144)) 2> /dev/null
+	@dd if=$(L476RG) of=$(L476RG).dfu bs=1024 count=144 2> /dev/null
+	@dd if=$(L476RG) of=$(L476RGBIN).dfu bs=1024 skip=144 2> /dev/null
+	@dd if=$(L476RGBIN) of=$(L476RGBIN).dfu bs=1024 seek=$$(($(ROM) - 144)) 2> /dev/null
 	@echo " done."
 	@cp -p $(BOARD).overlay $(OUT)/$(BOARD)/$(BOARD).overlay.bak
 endif
@@ -240,9 +240,9 @@ dynamic: zephyr
 # Flash images
 .PHONY: dfu
 dfu:
-ifeq ($(BOARD), arduino_101)
-	dfu-util -a x86_app -D $(A101BIN).dfu
-	dfu-util -a sensor_core -D $(A101SSBIN).dfu
+ifeq ($(BOARD), nucleo_l476rg)
+	dfu-util -a x86_app -D $(L476RG).dfu
+	dfu-util -a sensor_core -D $(L476RGBIN).dfu
 endif
 ifeq ($(BOARD), olimex_stm32_e407)
 	dfu-util -a 0 -d 0483:df11 -D $(OUT)/olimex_stm32_e407/zephyr/zephyr.bin --dfuse-address 0x08000000
@@ -341,27 +341,27 @@ ${JERRY_BASE}/CMakeLists.txt:
 # set up prj.conf file
 -.PHONY: setup
 setup: ${JERRY_BASE}/CMakeLists.txt
-ifeq ($(BOARD), arduino_101)
+ifeq ($(BOARD), nucleo_l476rg)
 ifeq ($(OS), Darwin)
 	@# work around for OSX where the xtool toolchain do not
-	@# support iamcu instruction set on the Arduino 101
+	@# support iamcu instruction set on the Nucleo l476rg
 	@echo "CONFIG_X86_IAMCU=n" >> prj.conf
 endif
 	@echo "CONFIG_RAM_SIZE=$(RAM)" >> prj.conf
 	@echo "CONFIG_ROM_SIZE=$(ROM)" >> prj.conf
 	@printf "CONFIG_SS_RESET_VECTOR=0x400%x\n" $$((($(ROM) + 64) * 1024)) >> prj.conf
-	@echo "&flash0 { reg = <0x40010000 ($(ROM) * 1024)>; };" > arduino_101.overlay
-	@echo "&flash1 { reg = <0x40030000 ($(ROM) * 1024)>; };" >> arduino_101.overlay
-	@echo "&sram0 { reg = <0xa800$(PHYS_RAM_ADDR) ($(RAM) * 1024)>; };" >> arduino_101.overlay
+	@echo "&flash0 { reg = <0x40010000 ($(ROM) * 1024)>; };" > nucleo_l476rg.overlay
+	@echo "&flash1 { reg = <0x40030000 ($(ROM) * 1024)>; };" >> nucleo_l476rg.overlay
+	@echo "&sram0 { reg = <0xa800$(PHYS_RAM_ADDR) ($(RAM) * 1024)>; };" >> nucleo_l476rg.overlay
 endif
 
 .PHONY: cleanlocal
 cleanlocal:
 	@rm -f $(OUT)/$(BOARD)/generated.cmake
-	@rm -f arc/arduino_101_sss.overlay
+	@rm -f arc/nucleo_l476rg.overlay
 	@rm -f arc/prj.conf
 	@rm -f arc/prj.conf.tmp
-	@rm -f arduino_101.overlay
+	@rm -f nucleo_l476rg.overlay
 	@rm -f prj.conf
 	@rm -f prj.conf.tmp
 	@rm -f $(OUT)/$(JS_TMP)
@@ -430,29 +430,29 @@ ARC_RESTRICT="zjs_ipm_arc.json,\
 .PHONY: arc
 arc: analyze
 	@# Restrict ARC build to only certain "arc specific" modules
-	@mkdir -p $(OUT)/arduino_101_sss
+	@mkdir -p $(OUT)/nucleo_l476rg
 	./scripts/analyze	--verbose=$(V) \
 		--script=$(OUT)/$(JS_TMP) \
 		--board=arc \
 		--json-dir=arc/src/ \
 		--prjconf=arc/prj.conf \
-		--cmakefile=$(OUT)/arduino_101_sss/generated.cmake \
-		--output-dir=$(OUT)/arduino_101_sss \
+		--cmakefile=$(OUT)/nucleo_l476rg/generated.cmake \
+		--output-dir=$(OUT)/nucleo_l476rg \
 		--force=$(ASHELL_ARC)
 
-	@echo "&flash0 { reg = <0x400$(FLASH_BASE_ADDR) ($(ARC_ROM) * 1024)>; };" > arc/arduino_101_sss.overlay
-	@echo "&sram0 { reg = <0xa8000400 ($(ARC_RAM) * 1024)>; };" >> arc/arduino_101_sss.overlay
-	@cmake -B$(OUT)/arduino_101_sss \
-		-DBOARD=arduino_101_sss \
+	@echo "&flash0 { reg = <0x400$(FLASH_BASE_ADDR) ($(ARC_ROM) * 1024)>; };" > arc/nucleo_l476rg.overlay
+	@echo "&sram0 { reg = <0xa8000400 ($(ARC_RAM) * 1024)>; };" >> arc/nucleo_l476rg.overlay
+	@cmake -B$(OUT)/nucleo_l476rg \
+		-DBOARD=nucleo_l476rg \
 		-DVARIANT=$(VARIANT) \
 		-H./arc && \
-	make -C $(OUT)/arduino_101_sss -j4
-ifeq ($(BOARD), arduino_101)
+	make -C $(OUT)/nucleo_l476rg -j4
+ifeq ($(BOARD), nucleo_l476rg)
 	@echo
 ifeq ($(OS), Darwin)
-	@if test $$(((296 - $(ROM)) * 1024)) -lt $$(stat -f "%z" $(A101SSBIN)); then echo Error: ARC image \($$(stat -f "%z" $(A101SSBIN)) bytes\) will not fit in available $$(((296 - $(ROM))))KB space. Try decreasing ROM.; return 1; fi
+	@if test $$(((296 - $(ROM)) * 1024)) -lt $$(stat -f "%z" $(L476RGBIN)); then echo Error: ARC image \($$(stat -f "%z" $(L476RGBIN)) bytes\) will not fit in available $$(((296 - $(ROM))))KB space. Try decreasing ROM.; return 1; fi
 else
-	@if test $$(((296 - $(ROM)) * 1024)) -lt $$(stat --printf="%s" $(A101SSBIN)); then echo Error: ARC image \($$(stat --printf="%s" $(A101SSBIN)) bytes\) will not fit in available $$(((296 - $(ROM))))KB space. Try decreasing ROM.; return 1; fi
+	@if test $$(((296 - $(ROM)) * 1024)) -lt $$(stat --printf="%s" $(L476RGBIN)); then echo Error: ARC image \($$(stat --printf="%s" $(L476RGBIN)) bytes\) will not fit in available $$(((296 - $(ROM))))KB space. Try decreasing ROM.; return 1; fi
 endif
 endif
 
@@ -464,12 +464,12 @@ adebug:
 # Run gdb to connect to debug server for x86
 .PHONY: agdb
 agdb:
-	$$ZEPHYR_SDK_INSTALL_DIR/sysroots/x86_64-pokysdk-linux/usr/bin/i586-zephyr-elfiamcu/i586-zephyr-elfiamcu-gdb $(OUT)/arduino_101/zephyr/zephyr.elf -ex "target remote :3333"
+	$$ZEPHYR_SDK_INSTALL_DIR/sysroots/x86_64-pokysdk-linux/usr/bin/i586-zephyr-elfiamcu/i586-zephyr-elfiamcu-gdb $(OUT)/nucleo_l476rg/zephyr/zephyr.elf -ex "target remote :3333"
 
 # Run gdb to connect to debug server for ARC
 .PHONY: arcgdb
 arcgdb:
-	$$ZEPHYR_SDK_INSTALL_DIR/sysroots/i686-pokysdk-linux/usr/bin/arc-poky-elf/arc-poky-elf-gdb $(OUT)/arduino_101_sss/zephyr/zephyr.elf -ex "target remote :3334"
+	$$ZEPHYR_SDK_INSTALL_DIR/sysroots/i686-pokysdk-linux/usr/bin/arc-poky-elf/arc-poky-elf-gdb $(OUT)/nucleo_l476rg/zephyr/zephyr.elf -ex "target remote :3334"
 
 # Linux target
 .PHONY: linux
@@ -491,14 +491,14 @@ help:
 	@echo
 	@echo "Build targets:"
 	@echo "    all:        Build for either Zephyr or Linux depending on BOARD"
-	@echo "    zephyr:     Build Zephyr for the given BOARD (A101 is default)"
+	@echo "    zephyr:     Build Zephyr for the given BOARD (L476RG is default)"
 	@echo "    ide         Build Zephyr in development mode for the IDE"
 	@echo "    ashell      Build Zephyr in development mode for command line"
 	@echo "    debug:      Run Zephyr debug target"
 	@echo "    flash:      Run Zephyr flash target"
-	@echo "    dfu:        Flash x86 and arc images to A101 with dfu-util"
-	@echo "    adebug:     Run debug server for A101 using JTAG"
-	@echo "    agdb:       Run gdb to connect to A101 debug server"
+	@echo "    dfu:        Flash x86 and arc images to L476RG with dfu-util"
+	@echo "    adebug:     Run debug server for L476RG using JTAG"
+	@echo "    agdb:       Run gdb to connect to L476RG debug server"
 	@echo "    qemu:       Run QEMU after building"
 	@echo "    clean:      Clean stale build objects for given BOARD"
 	@echo "    pristine:   Completely remove all generated files"
